@@ -1,16 +1,16 @@
 # PiVision-Trio
 
-**Real-time tri-state vision: face / color / gesture (0-10)**
+**实时三态视觉识别：人脸 / 颜色 / 手势（0-10）**
 
-> ⚠️ Tested only on Raspberry Pi 5 (Ubuntu). Other platforms are unverified.
+> ⚠️ 仅在 Raspberry Pi 5 (Ubuntu) 通过测试，其他平台未验证。
 
-## Features
+## 功能特性
 
-- Face detection: OpenCV DNN (SSD-ResNet10) with Haar fallback.
-- Color recognition: center ROI HSV statistics with 256+ names, low-sat/value filtered.
-- Gesture recognition: MediaPipe Hands using extended finger count (0-10).
+- 人脸检测：OpenCV DNN（SSD-ResNet10），模型缺失时回退到 Haar 级联。
+- 颜色识别：中心 ROI HSV 统计，256+ 颜色命名，过滤低饱和/低亮度像素。
+- 手势识别：MediaPipe Hands，按伸展手指数识别 0-10。
 
-## Runtime Preview
+## 运行预览
 
 ![Face](assets/face.png)
 
@@ -20,113 +20,85 @@
 
 ![Gesture](assets/gesture.png)
 
-## Requirements
+## 键位说明
+
+- `1`: 人脸检测
+- `2`: 颜色识别
+- `3`: 手势识别
+- `q`: 退出
+
+## 运行环境
 
 - Python 3.11
-- Camera device (USB or CSI)
+- 摄像头设备（USB 或 CSI）
 
-## Local Development
-
-1. Create a virtual environment
-
-    ```bash
-    python3.11 -m venv .venv
-    source .venv/bin/activate
-    ```
-
-2. Install dependencies
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3. Run the app
-
-    ```bash
-    src/main.py --camera 0 --width 640 --height 480
-    ```
-
-## Install Script
+## 本地开发
 
 ```bash
-bash scripts/install.sh
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 src/main.py
 ```
 
-The script installs system dependencies (uses sudo when available), downloads
-face models into `models/`, and creates a `.venv` virtual environment.
+## 命令行参数
 
-## Usage
-
-```bash
-./.venv/bin/python src/main.py --camera 0 --width 640 --height 480
-```
-
-## CLI Arguments
-
-| Argument | Default | Description |
+| 参数 | 默认值 | 说明 |
 | --- | --- | --- |
-| `--camera` / `-c` | `0` | Camera device ID |
-| `--width` / `-W` | `640` | Frame width |
-| `--height` / `-H` | `480` | Frame height |
+| `--camera` / `-c` | `0` | 摄像头设备 ID |
+| `--width` / `-W` | `640` | 帧宽度 |
+| `--height` / `-H` | `480` | 帧高度 |
 
-## Controls
+## 检测器说明
 
-- `1`: Face detection
-- `2`: Color recognition
-- `3`: Gesture recognition
-- `q`: Quit
+### 人脸检测
 
-## Detector Notes
+- 使用 DNN 模型 `models/opencv_face_detector.*`。
+- 模型缺失时回退到 Haar 级联。
+- 输出人脸框与置信度（Haar 模式下置信度为固定值）。
 
-### Face Detection
+### 颜色识别
 
-- Uses DNN models from `models/opencv_face_detector.*`.
-- Falls back to Haar Cascade when model files are missing.
-- Outputs face boxes and confidence (fixed value in Haar mode).
+- 采样中心 ROI，过滤低饱和/低亮度像素，并基于 HSV 统计生成颜色名称。
+- 叠加显示颜色块与 HSV 数值。
+- `ColorDetectorConfig.min_saturation` 和 `min_value` 参与像素筛选。
 
-### Color Recognition
+### 手势识别
 
-- Samples center ROI, filters low-sat/value pixels, and maps HSV stats to a color name.
-- Renders a color swatch and HSV values on the frame.
-- `ColorDetectorConfig.min_saturation` and `min_value` gate which pixels contribute.
+- 依赖 MediaPipe Hands。
+- 按伸展手指数量输出 0-10（双手时为总和）。
+- 绘制手部关键点与连线，并在右上角显示结果。
 
-### Gesture Recognition
+## 配置说明
 
-- Requires MediaPipe Hands.
-- Outputs 0-10 based on total extended fingers (two-hand sum).
-- Draws hand landmarks and connections with a right-top label.
+默认配置集中在 `config/settings.py`。
 
-## Configuration
-
-Defaults live in `config/settings.py`.
-
-| Module | Setting | Default | Description |
+| 模块 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| Camera | `device_id` | `0` | Camera device ID |
-| Camera | `width` / `height` | `640` / `480` | Frame size |
-| Camera | `fps` | `30` | Target FPS |
-| Face | `confidence_threshold` | `0.6` | DNN confidence threshold |
-| Face | `use_dnn` | `True` | Prefer DNN when available |
-| Color | `roi_scale` | `0.1` | ROI scale |
-| Color | `min_saturation` | `50` | Minimum saturation for color sampling |
-| Color | `min_value` | `50` | Minimum value for color sampling |
-| Gesture | `max_num_hands` | `2` | Max hands |
-| Gesture | `min_detection_confidence` | `0.7` | Detection confidence |
-| Gesture | `min_tracking_confidence` | `0.5` | Tracking confidence |
-| UI | `panel_height` | `60` | Info panel height |
-| App | `key_bindings` | `1/2/3/q` | Mode and quit keys |
+| Camera | `device_id` | `0` | 摄像头设备 ID |
+| Camera | `width` / `height` | `640` / `480` | 帧尺寸 |
+| Camera | `fps` | `30` | 目标帧率 |
+| Face | `confidence_threshold` | `0.6` | DNN 置信度阈值 |
+| Face | `use_dnn` | `True` | 优先使用 DNN |
+| Color | `roi_scale` | `0.1` | ROI 占比 |
+| Color | `min_saturation` | `50` | 颜色采样的最低饱和度 |
+| Color | `min_value` | `50` | 颜色采样的最低亮度 |
+| Gesture | `max_num_hands` | `2` | 最多检测手数 |
+| Gesture | `min_detection_confidence` | `0.7` | 检测置信度 |
+| Gesture | `min_tracking_confidence` | `0.5` | 跟踪置信度 |
+| UI | `panel_height` | `60` | 信息面板高度 |
+| App | `key_bindings` | `1/2/3/q` | 模式与退出键位 |
 
-## Models
+## 模型
 
-Face model files are in `models/`. See `models/README.md` for sources and
-licenses.
+模型文件位于 `models/`，来源与授权请见 `models/README.md`。
 
-Model files are managed with Git LFS. If you clone locally, run:
+模型文件由 Git LFS 管理，本地克隆后执行：
 
 ```bash
 git lfs pull
 ```
 
-## License
+## 许可证
 
-This project is licensed under the MIT License. See `LICENSE` for details.
+本项目使用 MIT 许可证，详情见 `LICENSE`。

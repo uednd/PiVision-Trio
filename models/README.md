@@ -1,20 +1,21 @@
-# Models Directory
+# 模型目录
 
-This directory contains pre-trained model files for face detection.
+本目录包含用于人脸检测的预训练模型文件。
 
-## Included Models
+## 已包含模型
 
-| File | Size | Description |
-|------|------|-------------|
-| `opencv_face_detector.caffemodel` | ~10MB | SSD-ResNet10 weights |
-| `opencv_face_detector.prototxt` | ~28KB | Model architecture |
+| 文件 | 大小 | 说明 |
+| --- | --- | --- |
+| `opencv_face_detector.caffemodel` | ~10MB | SSD-ResNet10 权重 |
+| `opencv_face_detector.prototxt` | ~28KB | 模型结构 |
 
-## Model Source
+## 模型来源
 
-- **Architecture**: SSD (Single Shot Detector) with ResNet-10 backbone
-- **Input Size**: 300x300 pixels
-- **Source**: [OpenCV DNN Samples](https://github.com/opencv/opencv/tree/master/samples/dnn/face_detector)
+- **架构**：SSD（Single Shot Detector）+ ResNet-10
+- **输入尺寸**：300x300 像素
+- **来源**：[OpenCV DNN Samples](https://github.com/opencv/opencv/tree/master/samples/dnn/face_detector)
 
-## Fallback
+## 回退策略
 
-If these model files are removed or corrupted, the system will automatically fall back to Haar Cascade face detection (built into OpenCV, lower accuracy but no additional files needed).
+如果这些模型文件缺失或损坏，系统会自动回退到 Haar 级联人脸检测
+（OpenCV 内置，精度较低但无需额外文件）。

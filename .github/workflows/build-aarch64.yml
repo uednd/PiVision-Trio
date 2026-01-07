@@ -71,11 +71,6 @@ jobs:
                 "src/main.py"
             '
 
-      - name: Fix artifact ownership
-        run: |
-          set -euo pipefail
-          sudo chown -R "$(id -u)":"$(id -g)" dist
-
       - name: Resolve version
         id: version
         run: |
@@ -90,6 +85,7 @@ jobs:
       - name: Rename artifact
         run: |
           set -euo pipefail
+          sudo chown -R "$(id -u)":"$(id -g)" dist
           VERSION="${{ steps.version.outputs.version }}"
           mv "dist/pivision-trio" "dist/pivision-trio-${VERSION}-aarch64"
 
