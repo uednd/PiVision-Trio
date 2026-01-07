@@ -2,7 +2,7 @@
 
 **Real-time tri-state vision: face / color / gesture (0-10)**
 
-> ⚠️ Tested only passed on Raspberry Pi 5 (Ubuntu). Other platforms are unverified.
+> ⚠️ Tested only on Raspberry Pi 5 (Ubuntu). Other platforms are unverified.
 
 ## Features
 
@@ -120,6 +120,12 @@ Defaults live in `config/settings.py`.
 
 Face model files are in `models/`. See `models/README.md` for sources and
 licenses.
+
+Model files are managed with Git LFS. If you clone locally, run:
+
+```bash
+git lfs pull
+```
 
 ## License
 

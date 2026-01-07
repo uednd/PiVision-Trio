@@ -2,6 +2,7 @@
 Face detection module using OpenCV DNN or Haar Cascade.
 """
 import os
+from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
@@ -69,8 +70,8 @@ class FaceDetector(BaseDetector):
 
     def _init_dnn(self) -> bool:
         """Initialize DNN-based face detector."""
-        model_path = self._config.model_file
-        config_path = self._config.config_file
+        model_path = self._resolve_model_path(self._config.model_file)
+        config_path = self._resolve_model_path(self._config.config_file)
 
         if not os.path.exists(model_path) or not os.path.exists(config_path):
             print(f"[FaceDetector] DNN model not found, falling back to Haar Cascade")
@@ -101,6 +102,20 @@ class FaceDetector(BaseDetector):
 
         print("[FaceDetector] Failed to load Haar Cascade")
         return False
+
+    def _resolve_model_path(self, relative_path: str) -> str:
+        candidates = []
+
+        if hasattr(sys, "_MEIPASS"):
+            candidates.append(Path(sys._MEIPASS) / relative_path)
+
+        candidates.append(Path(relative_path))
+
+        for candidate in candidates:
+            if candidate.exists():
+                return str(candidate)
+
+        return relative_path
 
     def detect(self, frame: np.ndarray) -> DetectionResult:
         """

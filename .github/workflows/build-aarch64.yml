@@ -1,0 +1,101 @@
+name: Build aarch64 Binary
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Verify LFS models
+        run: |
+          set -euo pipefail
+          for file in "models/opencv_face_detector.caffemodel" "models/opencv_face_detector.prototxt"; do
+            if [ ! -f "$file" ]; then
+              echo "[Error] Missing model file: $file" >&2
+              exit 1
+            fi
+            if head -n 1 "$file" | grep -q "git-lfs"; then
+              echo "[Error] Git LFS pointer detected: $file. Run 'git lfs pull'." >&2
+              exit 1
+            fi
+          done
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Build aarch64 binary (PyInstaller)
+        run: |
+          set -euo pipefail
+          IMAGE="python:3.11-slim-bookworm"
+          docker pull "$IMAGE"
+          docker run --rm --platform linux/arm64 \
+            -v "$GITHUB_WORKSPACE":/workspace \
+            -w /workspace \
+            "$IMAGE" \
+            /bin/bash -lc '
+              set -euo pipefail
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                gcc \
+                g++ \
+                make \
+                libgl1 \
+                libglib2.0-0
+              python -m venv ".venv"
+              ".venv/bin/python" -m pip install --upgrade pip
+              ".venv/bin/python" -m pip install -r "requirements.txt"
+              ".venv/bin/python" -m pip install "pyinstaller>=6.5.0"
+              ".venv/bin/python" -m PyInstaller \
+                --clean \
+                --noconfirm \
+                --name "pivision-trio" \
+                --onefile \
+                --collect-all "mediapipe" \
+                --collect-all "cv2" \
+                --add-data "models/opencv_face_detector.caffemodel:models" \
+                --add-data "models/opencv_face_detector.prototxt:models" \
+                "src/main.py"
+            '
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="dev-${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Rename artifact
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          mv "dist/pivision-trio" "dist/pivision-trio-${VERSION}-aarch64"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pivision-trio-aarch64-${{ steps.version.outputs.version }}
+          path: dist/pivision-trio-${{ steps.version.outputs.version }}-aarch64
+
+      - name: Publish release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/pivision-trio-${{ steps.version.outputs.version }}-aarch64
