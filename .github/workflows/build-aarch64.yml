@@ -71,6 +71,11 @@ jobs:
                 "src/main.py"
             '
 
+      - name: Fix artifact ownership
+        run: |
+          set -euo pipefail
+          sudo chown -R "$(id -u)":"$(id -g)" dist
+
       - name: Resolve version
         id: version
         run: |
