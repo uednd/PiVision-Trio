@@ -62,6 +62,7 @@ class ColorDetector(BaseDetector):
         super().__init__("Color Recognition")
         self._config = config or ColorDetectorConfig()
         self._roi: Optional[Tuple[int, int, int, int]] = None
+        self._last_frame_size: Optional[Tuple[int, int]] = None
 
     def initialize(self) -> bool:
         self._is_initialized = True
@@ -70,18 +71,22 @@ class ColorDetector(BaseDetector):
 
     def _get_roi(self, frame: np.ndarray) -> Tuple[int, int, int, int]:
         h, w = frame.shape[:2]
+        frame_size = (w, h)
+        if self._last_frame_size == frame_size and self._roi is not None:
+            return self._roi
         roi_w = int(w * self._config.roi_scale)
         roi_h = int(h * self._config.roi_scale)
         roi_x = (w - roi_w) // 2
         roi_y = (h - roi_h) // 2
-        return roi_x, roi_y, roi_w, roi_h
+        self._roi = (roi_x, roi_y, roi_w, roi_h)
+        self._last_frame_size = frame_size
+        return self._roi
 
     def detect(self, frame: np.ndarray) -> DetectionResult:
         if not self._is_initialized:
             return DetectionResult(False, message="Detector not initialized")
 
         roi_x, roi_y, roi_w, roi_h = self._get_roi(frame)
-        self._roi = (roi_x, roi_y, roi_w, roi_h)
         roi = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
 
         hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
@@ -196,7 +201,7 @@ class ColorDetector(BaseDetector):
         if not result.success:
             return frame
 
-        output = frame.copy()
+        output = frame
         data = result.data
         roi = data.get("roi")
 
@@ -271,4 +276,5 @@ class ColorDetector(BaseDetector):
 
     def release(self) -> None:
         self._roi = None
+        self._last_frame_size = None
         super().release()

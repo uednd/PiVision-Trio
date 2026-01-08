@@ -51,6 +51,7 @@ class CameraManager:
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self._config.width)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self._config.height)
         self._cap.set(cv2.CAP_PROP_FPS, self._config.fps)
+        self._cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
         # Verify settings were applied
         actual_width = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH))

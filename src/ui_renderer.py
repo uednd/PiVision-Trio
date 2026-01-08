@@ -41,6 +41,39 @@ class UIRenderer:
         self._fps = 0.0
         self._frame_count = 0
         self._last_time = 0.0
+        self._output_buffer: Optional[np.ndarray] = None
+        self._panel_base: Optional[np.ndarray] = None
+        self._buffer_shape: Optional[Tuple[int, int, int]] = None
+
+    def _ensure_buffers(self, frame_height: int, frame_width: int) -> None:
+        panel_h = self._config.panel_height
+        shape = (frame_height, frame_width, panel_h)
+
+        if self._buffer_shape == shape:
+            return
+
+        self._buffer_shape = shape
+        self._output_buffer = np.zeros((frame_height + panel_h, frame_width, 3), dtype=np.uint8)
+        self._panel_base = np.zeros((panel_h, frame_width, 3), dtype=np.uint8)
+        self._panel_base[:] = self._config.color_bg
+
+        cv2.line(
+            self._panel_base,
+            (0, 0),
+            (frame_width, 0),
+            self._config.color_secondary,
+            2
+        )
+
+        help_text = "[1]Face [2]Color [3]Gesture [Q]Quit"
+        cv2.putText(
+            self._panel_base, help_text,
+            (frame_width - 350, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (128, 128, 128),
+            1
+        )
 
     def update_fps(self, current_time: float) -> None:
         """
@@ -80,29 +113,10 @@ class UIRenderer:
             Frame with info panel
         """
         h, w = frame.shape[:2]
-        panel_h = self._config.panel_height
-
-        # Create output with extra space for panel
-        output = np.zeros((h + panel_h, w, 3), dtype=np.uint8)
+        self._ensure_buffers(h, w)
+        output = self._output_buffer
         output[:h, :] = frame
-
-        # Panel background
-        cv2.rectangle(
-            output,
-            (0, h),
-            (w, h + panel_h),
-            self._config.color_bg,
-            -1
-        )
-
-        # Separator line
-        cv2.line(
-            output,
-            (0, h),
-            (w, h),
-            self._config.color_secondary,
-            2
-        )
+        output[h:, :] = self._panel_base
 
         # Mode name
         mode_name = self.MODE_NAMES.get(mode, "Unknown")
@@ -147,17 +161,6 @@ class UIRenderer:
             self._config.font_thickness
         )
 
-        # Help text
-        help_text = "[1]Face [2]Color [3]Gesture [Q]Quit"
-        cv2.putText(
-            output, help_text,
-            (w - 350, h + 50),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (128, 128, 128),
-            1
-        )
-
         return output
 
     def render_mode_indicator(
@@ -175,7 +178,7 @@ class UIRenderer:
         Returns:
             Frame with mode indicator
         """
-        output = frame.copy()
+        output = frame
 
         mode_name = self.MODE_NAMES.get(mode, "Unknown")
         indicator_text = mode_name

@@ -221,7 +221,7 @@ class FaceDetector(BaseDetector):
         if not result.success or not result.data:
             return frame
 
-        output = frame.copy()
+        output = frame
 
         for face in result.data:
             # Draw bounding box

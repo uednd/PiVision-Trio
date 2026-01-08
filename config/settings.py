@@ -70,6 +70,14 @@ class UIConfig:
 
 
 @dataclass
+class PerformanceConfig:
+    """Performance tuning configuration."""
+    face_max_fps: float = 15.0
+    color_max_fps: float = 0.0
+    gesture_max_fps: float = 12.0
+
+
+@dataclass
 class AppConfig:
     """Main application configuration."""
     camera: CameraConfig = field(default_factory=CameraConfig)
@@ -77,6 +85,7 @@ class AppConfig:
     color: ColorDetectorConfig = field(default_factory=ColorDetectorConfig)
     gesture: GestureDetectorConfig = field(default_factory=GestureDetectorConfig)
     ui: UIConfig = field(default_factory=UIConfig)
+    performance: PerformanceConfig = field(default_factory=PerformanceConfig)
     # Key bindings
     key_bindings: Dict[str, int] = field(default_factory=lambda: {
         'face': ord('1'),

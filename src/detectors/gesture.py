@@ -59,6 +59,8 @@ class GestureDetector(BaseDetector):
         self._hands = None
         self._mp_hands = None
         self._mp_draw = None
+        self._hand_connections = None
+        self._draw_colors = ((0, 255, 0), (255, 0, 0))
 
     def initialize(self) -> bool:
         if not MEDIAPIPE_AVAILABLE:
@@ -71,6 +73,7 @@ class GestureDetector(BaseDetector):
         try:
             self._mp_hands = mp.solutions.hands
             self._mp_draw = mp.solutions.drawing_utils
+            self._hand_connections = self._mp_hands.HAND_CONNECTIONS
 
             self._hands = self._mp_hands.Hands(
                 static_image_mode=False,
@@ -194,17 +197,16 @@ class GestureDetector(BaseDetector):
         if not result.success:
             return frame
 
-        output = frame.copy()
+        output = frame
         gesture_info: GestureInfo = result.data
 
         if gesture_info.landmarks:
             h, w = frame.shape[:2]
-            colors = [(0, 255, 0), (255, 0, 0)]
 
             for hand_idx, landmarks in enumerate(gesture_info.landmarks):
-                color = colors[hand_idx % len(colors)]
+                color = self._draw_colors[hand_idx % len(self._draw_colors)]
 
-                connections = self._mp_hands.HAND_CONNECTIONS if self._mp_hands else []
+                connections = self._hand_connections or []
                 for connection in connections:
                     start_idx, end_idx = connection
                     start = landmarks[start_idx]
@@ -270,4 +272,5 @@ class GestureDetector(BaseDetector):
             self._hands = None
         self._mp_hands = None
         self._mp_draw = None
+        self._hand_connections = None
         super().release()

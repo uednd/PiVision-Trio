@@ -27,7 +27,7 @@ import cv2
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from config.settings import config
+from config.settings import DetectionMode, config
 from src.camera import CameraManager
 from src.state_manager import StateManager
 from src.ui_renderer import UIRenderer
@@ -59,6 +59,12 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _min_interval(max_fps: float) -> float:
+    if max_fps <= 0:
+        return 0.0
+    return 1.0 / max_fps
+
+
 def main() -> int:
     """
     Main application entry point.
@@ -72,6 +78,8 @@ def main() -> int:
     config.camera.device_id = args.camera
     config.camera.width = args.width
     config.camera.height = args.height
+
+    cv2.setUseOptimized(True)
 
     print("=" * 50)
     print("PiVision-Trio - Tri-State Recognition System")
@@ -109,10 +117,20 @@ def main() -> int:
     # Create display window
     cv2.namedWindow(config.window_name, cv2.WINDOW_AUTOSIZE)
 
+    detection_intervals = {
+        DetectionMode.FACE: _min_interval(config.performance.face_max_fps),
+        DetectionMode.COLOR: _min_interval(config.performance.color_max_fps),
+        DetectionMode.GESTURE: _min_interval(config.performance.gesture_max_fps),
+    }
+    last_detection_time = {mode: 0.0 for mode in detection_intervals}
+    last_results = {mode: None for mode in detection_intervals}
+    last_mode = state_manager.current_mode
+
     try:
         while True:
             # Capture frame
             ret, frame = camera.read()
+            result = None
 
             if not ret or frame is None:
                 # Show placeholder if camera fails
@@ -126,15 +144,28 @@ def main() -> int:
 
                 # Get current detector
                 detector = state_manager.current_detector
+                current_mode = state_manager.current_mode
+
+                if current_mode != last_mode:
+                    last_results[current_mode] = None
+                    last_detection_time[current_mode] = 0.0
+                    last_mode = current_mode
 
                 if detector and detector.is_initialized:
                     # Perform detection
-                    result = detector.detect(frame)
+                    now = time.perf_counter()
+                    min_interval = detection_intervals.get(current_mode, 0.0)
+
+                    if min_interval <= 0.0 or (now - last_detection_time[current_mode]) >= min_interval:
+                        result = detector.detect(frame)
+                        last_results[current_mode] = result
+                        last_detection_time[current_mode] = now
+                    else:
+                        result = last_results.get(current_mode)
 
                     # Draw detection results
-                    frame = detector.draw(frame, result)
-                else:
-                    result = None
+                    if result:
+                        frame = detector.draw(frame, result)
 
                 # Add mode indicator
                 frame = ui_renderer.render_mode_indicator(
@@ -143,13 +174,13 @@ def main() -> int:
                 )
 
             # Update FPS
-            ui_renderer.update_fps(time.time())
+            ui_renderer.update_fps(time.perf_counter())
 
             # Render info panel
             display_frame = ui_renderer.render_info_panel(
                 frame,
                 state_manager.current_mode,
-                result if 'result' in dir() else None
+                result
             )
 
             # Show frame
