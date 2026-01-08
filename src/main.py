@@ -125,11 +125,16 @@ def main() -> int:
     last_detection_time = {mode: 0.0 for mode in detection_intervals}
     last_results = {mode: None for mode in detection_intervals}
     last_mode = state_manager.current_mode
+    start_time = time.perf_counter()
+    mode_hint_text = ""
+    mode_hint_until = 0.0
+    mode_hint_color = config.ui.color_primary
 
     try:
         while True:
             # Capture frame
             ret, frame = camera.read()
+            loop_time = time.perf_counter()
             result = None
 
             if not ret or frame is None:
@@ -153,13 +158,12 @@ def main() -> int:
 
                 if detector and detector.is_initialized:
                     # Perform detection
-                    now = time.perf_counter()
                     min_interval = detection_intervals.get(current_mode, 0.0)
 
-                    if min_interval <= 0.0 or (now - last_detection_time[current_mode]) >= min_interval:
+                    if min_interval <= 0.0 or (loop_time - last_detection_time[current_mode]) >= min_interval:
                         result = detector.detect(frame)
                         last_results[current_mode] = result
-                        last_detection_time[current_mode] = now
+                        last_detection_time[current_mode] = loop_time
                     else:
                         result = last_results.get(current_mode)
 
@@ -173,14 +177,37 @@ def main() -> int:
                     state_manager.current_mode
                 )
 
+                if mode_hint_text and loop_time <= mode_hint_until:
+                    remaining = mode_hint_until - loop_time
+                    fade = config.ui.mode_hint_fade_seconds
+                    hint_alpha = 1.0
+                    if fade > 0.0 and remaining < fade:
+                        hint_alpha = max(0.0, remaining / fade)
+                    frame = ui_renderer.render_hint(
+                        frame,
+                        mode_hint_text,
+                        mode_hint_color,
+                        hint_alpha
+                    )
+
             # Update FPS
-            ui_renderer.update_fps(time.perf_counter())
+            ui_renderer.update_fps(loop_time)
+
+            help_elapsed = loop_time - start_time
+            show_help = help_elapsed <= config.ui.help_display_seconds
+            help_alpha = 1.0
+            if show_help and config.ui.help_fade_seconds > 0.0:
+                remaining = config.ui.help_display_seconds - help_elapsed
+                if remaining < config.ui.help_fade_seconds:
+                    help_alpha = max(0.0, remaining / config.ui.help_fade_seconds)
 
             # Render info panel
             display_frame = ui_renderer.render_info_panel(
                 frame,
                 state_manager.current_mode,
-                result
+                result,
+                show_help=show_help,
+                help_alpha=help_alpha
             )
 
             # Show frame
@@ -193,6 +220,14 @@ def main() -> int:
             if action is False:  # Quit requested
                 print("\n[Quit] User requested exit")
                 break
+            if action is True:
+                mode_name = ui_renderer.MODE_NAMES.get(
+                    state_manager.current_mode,
+                    "Unknown"
+                )
+                mode_hint_text = f"Mode: {mode_name}"
+                mode_hint_color = ui_renderer.get_mode_color(state_manager.current_mode)
+                mode_hint_until = time.perf_counter() + config.ui.mode_hint_seconds
 
     except KeyboardInterrupt:
         print("\n[Quit] Keyboard interrupt")

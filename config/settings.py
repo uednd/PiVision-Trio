@@ -67,6 +67,10 @@ class UIConfig:
     font_thickness: int = 2
     # Info panel
     panel_height: int = 60
+    help_display_seconds: float = 4.0
+    help_fade_seconds: float = 0.8
+    mode_hint_seconds: float = 1.2
+    mode_hint_fade_seconds: float = 0.4
 
 
 @dataclass
