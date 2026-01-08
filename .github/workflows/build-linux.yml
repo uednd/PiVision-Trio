@@ -1,4 +1,4 @@
-name: Build aarch64 Binary
+name: Build Linux Binaries
 
 on:
   workflow_dispatch:
@@ -12,6 +12,18 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            platform: linux/arm64
+            qemu_platforms: arm64
+            artifact_suffix: aarch64
+          - arch: x86_64
+            platform: linux/amd64
+            qemu_platforms: ""
+            artifact_suffix: x86_64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,16 +45,17 @@ jobs:
           done
 
       - name: Set up QEMU
+        if: ${{ matrix.qemu_platforms != '' }}
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: arm64
+          platforms: ${{ matrix.qemu_platforms }}
 
-      - name: Build aarch64 binary (PyInstaller)
+      - name: Build binary (PyInstaller)
         run: |
           set -euo pipefail
           IMAGE="python:3.11-slim-bookworm"
           docker pull "$IMAGE"
-          docker run --rm --platform linux/arm64 \
+          docker run --rm --platform "${{ matrix.platform }}" \
             -v "$GITHUB_WORKSPACE":/workspace \
             -w /workspace \
             "$IMAGE" \
@@ -87,16 +100,16 @@ jobs:
           set -euo pipefail
           sudo chown -R "$(id -u)":"$(id -g)" dist
           VERSION="${{ steps.version.outputs.version }}"
-          mv "dist/pivision-trio" "dist/pivision-trio-${VERSION}-aarch64"
+          mv "dist/pivision-trio" "dist/pivision-trio-${VERSION}-${{ matrix.artifact_suffix }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pivision-trio-aarch64-${{ steps.version.outputs.version }}
-          path: dist/pivision-trio-${{ steps.version.outputs.version }}-aarch64
+          name: pivision-trio-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
+          path: dist/pivision-trio-${{ steps.version.outputs.version }}-${{ matrix.artifact_suffix }}
 
       - name: Publish release asset
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/pivision-trio-${{ steps.version.outputs.version }}-aarch64
+          files: dist/pivision-trio-${{ steps.version.outputs.version }}-${{ matrix.artifact_suffix }}
