@@ -287,42 +287,6 @@ class UIRenderer:
 
         return output
 
-    def render_hint(
-        self,
-        frame: np.ndarray,
-        text: str,
-        color: Tuple[int, int, int],
-        alpha: float = 1.0
-    ) -> np.ndarray:
-        if not text:
-            return frame
-
-        h, w = frame.shape[:2]
-        self._ensure_buffers(h, w)
-        text_color = self._apply_alpha(color, alpha)
-
-        text_size = cv2.getTextSize(
-            text,
-            self._font,
-            self._hint_scale,
-            self._config.font_thickness
-        )[0]
-
-        text_x = max(10, (w - text_size[0]) // 2)
-        text_y = max(20, text_size[1] + 10)
-
-        self._draw_text(
-            frame,
-            text,
-            (text_x, text_y),
-            self._hint_scale,
-            text_color,
-            self._config.font_thickness,
-            outline_color=self._apply_alpha((0, 0, 0), alpha)
-        )
-
-        return frame
-
     @staticmethod
     def render_no_camera(width: int, height: int) -> np.ndarray:
         """

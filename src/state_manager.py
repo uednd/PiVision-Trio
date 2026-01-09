@@ -84,8 +84,11 @@ class StateManager:
 
         detector = self._detectors[mode]
         if not detector.is_initialized:
-            print(f"[StateManager] Cannot switch to {detector.name}: not initialized")
-            return False
+            if detector.initialize():
+                print(f"[StateManager] {detector.name} initialized on demand")
+            else:
+                print(f"[StateManager] Cannot switch to {detector.name}: not initialized")
+                return False
 
         self._current_mode = mode
         print(f"[StateManager] Switched to {detector.name}")
@@ -112,16 +115,13 @@ class StateManager:
             return False
 
         if key == key_bindings['face']:
-            self.switch_mode(DetectionMode.FACE)
-            return True
+            return self.switch_mode(DetectionMode.FACE)
 
         if key == key_bindings['color']:
-            self.switch_mode(DetectionMode.COLOR)
-            return True
+            return self.switch_mode(DetectionMode.COLOR)
 
         if key == key_bindings['gesture']:
-            self.switch_mode(DetectionMode.GESTURE)
-            return True
+            return self.switch_mode(DetectionMode.GESTURE)
 
         return None
 

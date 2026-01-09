@@ -69,16 +69,14 @@ class UIConfig:
     panel_height: int = 60
     help_display_seconds: float = 4.0
     help_fade_seconds: float = 0.8
-    mode_hint_seconds: float = 1.2
-    mode_hint_fade_seconds: float = 0.4
 
 
 @dataclass
 class PerformanceConfig:
     """Performance tuning configuration."""
-    face_max_fps: float = 15.0
+    face_max_fps: float = 13.0
     color_max_fps: float = 0.0
-    gesture_max_fps: float = 12.0
+    gesture_max_fps: float = 11.0
 
 
 @dataclass

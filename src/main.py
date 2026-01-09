@@ -126,9 +126,6 @@ def main() -> int:
     last_results = {mode: None for mode in detection_intervals}
     last_mode = state_manager.current_mode
     start_time = time.perf_counter()
-    mode_hint_text = ""
-    mode_hint_until = 0.0
-    mode_hint_color = config.ui.color_primary
 
     try:
         while True:
@@ -177,19 +174,6 @@ def main() -> int:
                     state_manager.current_mode
                 )
 
-                if mode_hint_text and loop_time <= mode_hint_until:
-                    remaining = mode_hint_until - loop_time
-                    fade = config.ui.mode_hint_fade_seconds
-                    hint_alpha = 1.0
-                    if fade > 0.0 and remaining < fade:
-                        hint_alpha = max(0.0, remaining / fade)
-                    frame = ui_renderer.render_hint(
-                        frame,
-                        mode_hint_text,
-                        mode_hint_color,
-                        hint_alpha
-                    )
-
             # Update FPS
             ui_renderer.update_fps(loop_time)
 
@@ -220,14 +204,6 @@ def main() -> int:
             if action is False:  # Quit requested
                 print("\n[Quit] User requested exit")
                 break
-            if action is True:
-                mode_name = ui_renderer.MODE_NAMES.get(
-                    state_manager.current_mode,
-                    "Unknown"
-                )
-                mode_hint_text = f"Mode: {mode_name}"
-                mode_hint_color = ui_renderer.get_mode_color(state_manager.current_mode)
-                mode_hint_until = time.perf_counter() + config.ui.mode_hint_seconds
 
     except KeyboardInterrupt:
         print("\n[Quit] Keyboard interrupt")
